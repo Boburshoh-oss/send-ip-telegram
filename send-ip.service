@@ -1,0 +1,12 @@
+[Unit]
+Description=Send IP address to Telegram on boot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/bin/send_ip.py
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

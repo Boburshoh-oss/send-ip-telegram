@@ -1,0 +1,13 @@
+# Maxfiy ma'lumotlar — bu faylni Git ga qo'shmang
+*.env
+.env
+config_local.py
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+# OS fayllar
+.DS_Store
+Thumbs.db
