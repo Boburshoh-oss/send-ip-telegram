@@ -92,7 +92,16 @@ def main():
             f"IP manzil aniqlanmadi."
         )
 
-    send_telegram_message(message)
+    # DNS tayyor bo'lmasa retry (max 30 urinish, har 5 sekund)
+    for attempt in range(30):
+        try:
+            send_telegram_message(message)
+            break
+        except Exception:
+            if attempt < 29:
+                time.sleep(5)
+            else:
+                raise
 
 
 if __name__ == "__main__":
