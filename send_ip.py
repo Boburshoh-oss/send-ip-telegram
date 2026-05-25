@@ -12,30 +12,49 @@ import time
 
 # -----------------------------------------------
 # SOZLAMALAR — o'zingizning qiymatlaringizni kiriting
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"   # @BotFather dan olingan token
-CHAT_ID   = "YOUR_CHAT_ID_HERE"     # Guruh yoki shaxsiy chat ID
+BOT_TOKEN = "8892459100:AAEQ3N62bLATXa8XdxnNL0cwYWqt7tW0sLs"   # @BotFather dan olingan token
+CHAT_ID   = "-1003786945587"     # Guruh yoki shaxsiy chat ID
 # -----------------------------------------------
 
 
+# Virtual/Docker interfeyslarini filtrlash uchun prefix va nom ro'yxati
+VIRTUAL_IFACE_PREFIXES = ("docker", "br-", "veth", "virbr", "lxc", "lxd", "flannel", "cni", "dummy")
+VIRTUAL_IP_PREFIXES = ("172.17.", "172.18.", "172.19.", "172.20.", "10.0.2.")
+
+
+def is_virtual_iface(iface, ip):
+    """Interfeys yoki IP virtual/Docker ekanligini tekshiradi."""
+    if iface.startswith(VIRTUAL_IFACE_PREFIXES):
+        return True
+    if ip.startswith(VIRTUAL_IP_PREFIXES):
+        return True
+    return False
+
+
 def get_ip_addresses():
-    """Barcha loopback bo'lmagan IPv4 manzillarni qaytaradi."""
+    """Haqiqiy (loopback va virtual bo'lmagan) IPv4 manzillarni qaytaradi."""
     ips = {}
+    iface = None
     try:
         result = subprocess.run(
             ["ip", "-4", "addr", "show"],
             capture_output=True, text=True, timeout=10
         )
         for line in result.stdout.splitlines():
+            # Interfeys nomini ol
+            if line and not line[0].isspace():
+                parts = line.split()
+                if len(parts) >= 2:
+                    iface = parts[1].rstrip(":")
             line = line.strip()
             if line.startswith("inet "):
                 parts = line.split()
                 ip = parts[1].split("/")[0]
-                if ip != "127.0.0.1":
-                    iface = ""
-                    for p in parts:
-                        if p not in ("inet", parts[1]):
-                            iface = p
-                    ips[ip] = iface
+                if ip == "127.0.0.1":
+                    continue
+                if iface and is_virtual_iface(iface, ip):
+                    continue
+                ips[ip] = iface or ""
     except Exception:
         pass
 
@@ -66,8 +85,9 @@ def send_telegram_message(text):
 
 
 def main():
-    # Tarmoq tayyor bo'lishini kutish (max 60 sekund)
-    for _ in range(30):
+    # Tarmoq tayyor bo'lishini kutish (max 120 sekund)
+    # Faqat haqiqiy (virtual bo'lmagan) IP topilsa to'xtatamiz
+    for _ in range(60):
         ips = get_ip_addresses()
         if ips:
             break
